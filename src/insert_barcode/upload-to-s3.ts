@@ -4,7 +4,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import * as archiver from "archiver";
 
 // Configuration constants
-const BUCKET_NAME = "dev-coupon-code-source-bucket-ap-northeast-1";
+const BUCKET_NAME = "dev-coupon-code-source-bucket-ap-northeast-1-856562439801";
 
 // Initialize S3 client for ap-northeast-1 region
 const s3Client = new S3Client({
@@ -105,16 +105,18 @@ async function uploadFileToS3(
 /**
  * Uploads a folder to S3 as a zip archive
  * @param folderName - Name of the folder in the output directory to upload
+ * @param customS3Key - Optional custom S3 key for the uploaded file
  * @returns Promise that resolves with the S3 object URL
  */
 export default async function uploadFolderToS3(
-  folderName: string
+  folderName: string,
+  customS3Key?: string
 ): Promise<string> {
   const outputDir = path.join(process.cwd(), "output");
   const folderPath = path.join(outputDir, folderName);
   const tempDir = path.join(outputDir, "temp");
-  const zipFileName = `${folderName}.zip`;
-  const zipFilePath = path.join(tempDir, zipFileName);
+  const s3Key = customS3Key || `${folderName}.zip`;
+  const zipFilePath = path.join(tempDir, customS3Key || `${folderName}.zip`);
 
   try {
     // Validate input
@@ -137,10 +139,10 @@ export default async function uploadFolderToS3(
     // Create zip archive
     await createZipArchive(folderPath, zipFilePath);
 
-    console.log(`⬆️ Uploading ${zipFileName} to S3...`);
+    console.log(`⬆️ Uploading ${s3Key} to S3...`);
 
     // Upload to S3
-    const s3Url = await uploadFileToS3(zipFilePath, zipFileName);
+    const s3Url = await uploadFileToS3(zipFilePath, s3Key);
 
     console.log(`✅ Successfully uploaded to S3: ${s3Url}`);
 

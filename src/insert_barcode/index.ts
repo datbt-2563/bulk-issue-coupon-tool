@@ -108,6 +108,30 @@ async function promptFolderSelection(): Promise<string> {
   return folderName;
 }
 
+async function promptUploadConfirmation(): Promise<boolean> {
+  const { shouldUpload } = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "shouldUpload",
+      message: "Do you want to upload the generated file to S3 now?",
+      default: false,
+    },
+  ]);
+  return shouldUpload;
+}
+
+function generateTimestamp(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hour = String(now.getHours()).padStart(2, "0");
+  const minute = String(now.getMinutes()).padStart(2, "0");
+  const second = String(now.getSeconds()).padStart(2, "0");
+
+  return `${year}${month}${day}_${hour}_${minute}_${second}`;
+}
+
 async function runModule(moduleName: string, quantity?: number): Promise<void> {
   try {
     let outputPath: string;
@@ -118,6 +142,20 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         outputPath = pos12.default(quantity!);
         console.log(`✅ POS12 codes generated successfully!`);
         console.log(`📁 Output directory: ${outputPath}`);
+
+        // Prompt for S3 upload
+        const shouldUploadPos12 = await promptUploadConfirmation();
+        if (shouldUploadPos12) {
+          const timestamp = generateTimestamp();
+          const folderName = path.basename(outputPath);
+          const customKey = `${folderName}-${timestamp}.zip`;
+          const uploadToS3 = await import("./upload-to-s3");
+          const s3Url = await uploadToS3.default(folderName, customKey);
+          console.log(`✅ Folder uploaded successfully to S3!`);
+          console.log(`🌐 S3 URL: ${s3Url}`);
+        } else {
+          console.log(`⏭️ Upload skipped.`);
+        }
         break;
 
       case "Gen16":
@@ -125,6 +163,21 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         outputPath = gen16.default(quantity!);
         console.log(`✅ General 16-digit codes generated successfully!`);
         console.log(`📁 Output directory: ${outputPath}`);
+
+        // Prompt for S3 upload
+        const shouldUploadGen16 = await promptUploadConfirmation();
+        if (shouldUploadGen16) {
+          const timestamp = generateTimestamp();
+          const folderName = path.basename(outputPath);
+          const customKey = `${folderName}-${timestamp}.zip`;
+
+          const uploadToS3 = await import("./upload-to-s3");
+          const s3Url = await uploadToS3.default(folderName, customKey);
+          console.log(`✅ Folder uploaded successfully to S3!`);
+          console.log(`🌐 S3 URL: ${s3Url}`);
+        } else {
+          console.log(`⏭️ Upload skipped.`);
+        }
         break;
 
       case "Mos":
@@ -132,6 +185,21 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         outputPath = mos.default(quantity!);
         console.log(`✅ MOS coupon codes generated successfully!`);
         console.log(`📁 Output directory: ${outputPath}`);
+
+        // Prompt for S3 upload
+        const shouldUploadMos = await promptUploadConfirmation();
+        if (shouldUploadMos) {
+          const timestamp = generateTimestamp();
+          const folderName = path.basename(outputPath);
+          const customKey = `${folderName}-${timestamp}.zip`;
+
+          const uploadToS3 = await import("./upload-to-s3");
+          const s3Url = await uploadToS3.default(folderName, customKey);
+          console.log(`✅ Folder uploaded successfully to S3!`);
+          console.log(`🌐 S3 URL: ${s3Url}`);
+        } else {
+          console.log(`⏭️ Upload skipped.`);
+        }
         break;
 
       case "Clean":
@@ -141,10 +209,16 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
 
       case "Upload":
         const folderName = await promptFolderSelection();
-        const uploadToS3 = await import("./upload-to-s3");
-        const s3Url = await uploadToS3.default(folderName);
-        console.log(`✅ Folder uploaded successfully to S3!`);
-        console.log(`🌐 S3 URL: ${s3Url}`);
+        const shouldUpload = await promptUploadConfirmation();
+
+        if (shouldUpload) {
+          const uploadToS3 = await import("./upload-to-s3");
+          const s3Url = await uploadToS3.default(folderName);
+          console.log(`✅ Folder uploaded successfully to S3!`);
+          console.log(`🌐 S3 URL: ${s3Url}`);
+        } else {
+          console.log(`⏭ Upload skipped by the user.`);
+        }
         break;
 
       default:
