@@ -29,6 +29,11 @@ const barcodeModules: BarcodeModule[] = [
     description: "Delete all CSV files in current and output directories",
     requiresQuantity: false,
   },
+  {
+    name: "Upload",
+    description: "Upload a generated folder to S3 as a zip archive",
+    requiresQuantity: false,
+  },
 ];
 
 async function promptBarcodeType(): Promise<string> {
@@ -65,6 +70,44 @@ async function promptQuantity(): Promise<number> {
   return quantity;
 }
 
+async function promptFolderSelection(): Promise<string> {
+  const outputDir = path.join(process.cwd(), "output");
+
+  // Check if output directory exists
+  if (!fs.existsSync(outputDir)) {
+    throw new Error(
+      "Output directory not found. Please generate some codes first."
+    );
+  }
+
+  // Get list of folders in output directory
+  const items = fs.readdirSync(outputDir, { withFileTypes: true });
+  const folders = items
+    .filter((item) => item.isDirectory())
+    .map((item) => item.name)
+    .sort((a, b) => b.localeCompare(a)); // Sort newest first
+
+  if (folders.length === 0) {
+    throw new Error(
+      "No folders found in output directory. Please generate some codes first."
+    );
+  }
+
+  const { folderName } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "folderName",
+      message: "Select a folder to upload:",
+      choices: folders.map((folder) => ({
+        name: folder,
+        value: folder,
+      })),
+    },
+  ]);
+
+  return folderName;
+}
+
 async function runModule(moduleName: string, quantity?: number): Promise<void> {
   try {
     let outputPath: string;
@@ -94,6 +137,14 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
       case "Clean":
         const clean = await import("./deleted-csv");
         clean.default();
+        break;
+
+      case "Upload":
+        const folderName = await promptFolderSelection();
+        const uploadToS3 = await import("./upload-to-s3");
+        const s3Url = await uploadToS3.default(folderName);
+        console.log(`✅ Folder uploaded successfully to S3!`);
+        console.log(`🌐 S3 URL: ${s3Url}`);
         break;
 
       default:

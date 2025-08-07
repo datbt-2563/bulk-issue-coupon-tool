@@ -17,10 +17,12 @@ The bulk coupon tool now includes an interactive CLI that makes it easy to gener
      - **Gen16**: Generate 16-digit general codes  
      - **Mos**: Generate MOS coupon codes with pattern B[6digits]2[6digits]B
      - **Clean**: Delete all CSV files in current and output directories
+     - **Upload**: Upload a generated folder to S3 as a zip archive
 
-3. **Enter quantity (if applicable):**
+3. **Enter quantity or select folder:**
    - For barcode generation types, you'll be prompted to enter the number of codes to generate
-   - The Clean option doesn't require a quantity
+   - For the Upload option, you'll be shown a list of available folders to upload
+   - The Clean option doesn't require additional input
 
 4. **View results:**
    - Generated files will be saved in the `output/` directory
@@ -35,8 +37,11 @@ The bulk coupon tool now includes an interactive CLI that makes it easy to gener
   - `npm run general-16` 
   - `npm run coupon-mos`
   - `npm run deleted-csv`
+  - `npm run upload-s3 <folder-name>`
 
-### Example Session:
+### Example Sessions:
+
+**Generating codes:**
 ```
 🎫 Bulk Issue Coupon Tool
 ========================================
@@ -46,6 +51,21 @@ The bulk coupon tool now includes an interactive CLI that makes it easy to gener
 🚀 Running Pos12 with quantity 100000...
 ✅ POS12 codes generated successfully!
 📁 Output directory: /path/to/output/pos12_codes_20250807_143022
+```
+
+**Uploading to S3:**
+```
+🎫 Bulk Issue Coupon Tool
+========================================
+? Select a barcode type: Upload - Upload a generated folder to S3 as a zip archive
+? Select a folder to upload: pos12_codes_20250807_143022
+
+🚀 Running Upload...
+📁 Preparing to zip folder: /path/to/output/pos12_codes_20250807_143022
+📦 Archive created: 45231 total bytes
+⬆️ Uploading pos12_codes_20250807_143022.zip to S3...
+✅ Folder uploaded successfully to S3!
+🌐 S3 URL: https://dev-coupon-code-source-bucket-ap-northeast-1.s3.ap-northeast-1.amazonaws.com/pos12_codes_20250807_143022.zip
 ```
 
 All generated files are organized in the `output/` directory with timestamped folders for easy management.
