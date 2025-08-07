@@ -11,31 +11,6 @@ interface BarcodeModule {
 
 const barcodeModules: BarcodeModule[] = [
   {
-    name: "Pos12",
-    description: "Generate POS unit codes with pattern A[13digits]C",
-    requiresQuantity: true,
-  },
-  {
-    name: "Gen16",
-    description: "Generate 16-digit general codes",
-    requiresQuantity: true,
-  },
-  {
-    name: "Mos",
-    description: "Generate MOS coupon codes with pattern B[6digits]2[6digits]B",
-    requiresQuantity: true,
-  },
-  {
-    name: "Clean",
-    description: "Delete all CSV files in current and output directories",
-    requiresQuantity: false,
-  },
-  {
-    name: "Upload",
-    description: "Upload a generated folder to S3 as a zip archive",
-    requiresQuantity: false,
-  },
-  {
     name: "Redis Overview",
     description: "Get Redis/Valkey overview and statistics",
     requiresQuantity: false,
@@ -48,6 +23,26 @@ const barcodeModules: BarcodeModule[] = [
   {
     name: "Poll Execution Status",
     description: "Monitor Step Functions execution status in real-time",
+    requiresQuantity: false,
+  },
+  {
+    name: "Generate barcode (CSV file)",
+    description: "Generate POS, Gen16, or MOS barcode codes",
+    requiresQuantity: false,
+  },
+  {
+    name: "Clean CSV file",
+    description: "Delete all CSV files in current and output directories",
+    requiresQuantity: false,
+  },
+  {
+    name: "Upload CSV file",
+    description: "Upload a generated folder to S3 as a zip archive",
+    requiresQuantity: false,
+  },
+  {
+    name: "Exit",
+    description: "Exit the application",
     requiresQuantity: false,
   },
 ];
@@ -65,6 +60,31 @@ async function promptBarcodeType(): Promise<string> {
     },
   ]);
   return barcodeType;
+}
+
+async function promptBarcodeSubType(): Promise<string> {
+  const { barcodeSubType } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "barcodeSubType",
+      message: "Select a barcode type to generate:",
+      choices: [
+        {
+          name: "Pos12 - Generate POS unit codes with pattern A[13digits]C",
+          value: "Pos12",
+        },
+        {
+          name: "Gen16 - Generate 16-digit general codes",
+          value: "Gen16",
+        },
+        {
+          name: "Mos - Generate MOS coupon codes with pattern B[6digits]2[6digits]B",
+          value: "Mos",
+        },
+      ],
+    },
+  ]);
+  return barcodeSubType;
 }
 
 async function promptQuantity(): Promise<number> {
@@ -165,62 +185,46 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
     let outputPath: string;
 
     switch (moduleName) {
-      case "Pos12":
-        const pos12 = await import("./insert_barcode/pos12");
-        outputPath = pos12.default(quantity!);
-        console.log(`✅ POS12 codes generated successfully!`);
-        console.log(`📁 Output directory: ${outputPath}`);
-
-        // Prompt for S3 upload
-        const shouldUploadPos12 = await promptUploadConfirmation();
-        if (shouldUploadPos12) {
-          const timestamp = generateTimestamp();
-          const folderName = path.basename(outputPath);
-          const customKey = `${folderName}-${timestamp}.zip`;
-          const uploadToS3 = await import("./insert_barcode/upload-to-s3");
-          const s3Url = await uploadToS3.default(folderName, customKey);
-          console.log(`✅ Folder uploaded successfully to S3!`);
-          console.log(`🌐 S3 URL: ${s3Url}`);
-        } else {
-          console.log(`⏭️ Upload skipped.`);
-        }
+      case "Exit":
+        console.log("👋 Goodbye!");
+        process.exit(0);
         break;
+      case "Generate barcode":
+        // Prompt for barcode sub-type
+        const barcodeSubType = await promptBarcodeSubType();
 
-      case "Gen16":
-        const gen16 = await import("./insert_barcode/general_16");
-        outputPath = gen16.default(quantity!);
-        console.log(`✅ General 16-digit codes generated successfully!`);
-        console.log(`📁 Output directory: ${outputPath}`);
+        // Prompt for quantity
+        const barcodeQuantity = await promptQuantity();
 
-        // Prompt for S3 upload
-        const shouldUploadGen16 = await promptUploadConfirmation();
-        if (shouldUploadGen16) {
-          const timestamp = generateTimestamp();
-          const folderName = path.basename(outputPath);
-          const customKey = `${folderName}-${timestamp}.zip`;
+        console.log(
+          `\n🚀 Generating ${barcodeSubType} codes with quantity ${barcodeQuantity}...`
+        );
 
-          const uploadToS3 = await import("./insert_barcode/upload-to-s3");
-          const s3Url = await uploadToS3.default(folderName, customKey);
-          console.log(`✅ Folder uploaded successfully to S3!`);
-          console.log(`🌐 S3 URL: ${s3Url}`);
+        // Generate codes based on sub-type
+        if (barcodeSubType === "Pos12") {
+          const pos12 = await import("./insert_barcode/pos12");
+          outputPath = pos12.default(barcodeQuantity);
+          console.log(`✅ POS12 codes generated successfully!`);
+        } else if (barcodeSubType === "Gen16") {
+          const gen16 = await import("./insert_barcode/general_16");
+          outputPath = gen16.default(barcodeQuantity);
+          console.log(`✅ General 16-digit codes generated successfully!`);
+        } else if (barcodeSubType === "Mos") {
+          const mos = await import("./insert_barcode/coupon-mos");
+          outputPath = mos.default(barcodeQuantity);
+          console.log(`✅ MOS coupon codes generated successfully!`);
         } else {
-          console.log(`⏭️ Upload skipped.`);
+          throw new Error(`Unknown barcode sub-type: ${barcodeSubType}`);
         }
-        break;
 
-      case "Mos":
-        const mos = await import("./insert_barcode/coupon-mos");
-        outputPath = mos.default(quantity!);
-        console.log(`✅ MOS coupon codes generated successfully!`);
         console.log(`📁 Output directory: ${outputPath}`);
 
         // Prompt for S3 upload
-        const shouldUploadMos = await promptUploadConfirmation();
-        if (shouldUploadMos) {
+        const shouldUploadBarcode = await promptUploadConfirmation();
+        if (shouldUploadBarcode) {
           const timestamp = generateTimestamp();
           const folderName = path.basename(outputPath);
           const customKey = `${folderName}-${timestamp}.zip`;
-
           const uploadToS3 = await import("./insert_barcode/upload-to-s3");
           const s3Url = await uploadToS3.default(folderName, customKey);
           console.log(`✅ Folder uploaded successfully to S3!`);
@@ -463,7 +467,7 @@ async function main(): Promise<void> {
     }
 
     console.log(
-      `\n🚀 Running ${selectedType}${
+      `\n🚀 Starting ${selectedType}${
         quantity ? ` with quantity ${quantity}` : ""
       }...`
     );
