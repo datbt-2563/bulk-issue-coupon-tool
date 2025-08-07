@@ -26,17 +26,17 @@ const barcodeModules: BarcodeModule[] = [
     requiresQuantity: false,
   },
   {
-    name: "Generate barcode (CSV file)",
+    name: "Generate barcode",
     description: "Generate POS, Gen16, or MOS barcode codes",
     requiresQuantity: false,
   },
   {
-    name: "Clean CSV file",
+    name: "Clean",
     description: "Delete all CSV files in current and output directories",
     requiresQuantity: false,
   },
   {
-    name: "Upload CSV file",
+    name: "Upload",
     description: "Upload a generated folder to S3 as a zip archive",
     requiresQuantity: false,
   },
