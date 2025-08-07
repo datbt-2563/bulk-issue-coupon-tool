@@ -1,4 +1,10 @@
-import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
+import {
+  SFNClient,
+  StartExecutionCommand,
+  DescribeExecutionCommand,
+} from "@aws-sdk/client-sfn";
+import * as fs from "fs/promises";
+import * as path from "path";
 
 // Initialize Step Functions client for ap-northeast-1 region
 const sfnClient = new SFNClient({
@@ -36,6 +42,11 @@ export async function invokeBulkIssueStateMachine(
 
     console.log("✅ State machine execution started successfully");
     console.log("🔗 Execution ARN:", response.executionArn);
+
+    // Persist execution to process.json
+    if (response.executionArn) {
+      await persistExecution(response.executionArn);
+    }
 
     // Note: StartExecutionCommand doesn't wait for completion or return payload
     // It only starts the execution and returns execution metadata
@@ -128,6 +139,114 @@ export async function bulkIssueMos(
     `📊 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
   );
   return await invokeBulkIssueStateMachine(payload);
+}
+
+/**
+ * Persist execution ARN to process.json file
+ * @param executionArn - The execution ARN to persist
+ */
+async function persistExecution(executionArn: string): Promise<void> {
+  try {
+    const processFilePath = path.join(
+      process.cwd(),
+      "output",
+      "sfn",
+      "process.json"
+    );
+
+    // Ensure directory exists
+    const processDir = path.dirname(processFilePath);
+    await fs.mkdir(processDir, { recursive: true });
+
+    let executions: Array<{ arn: string; timestamp: number }> = [];
+
+    // Try to load existing file
+    try {
+      const existingData = await fs.readFile(processFilePath, "utf-8");
+      executions = JSON.parse(existingData);
+
+      // Ensure it's an array
+      if (!Array.isArray(executions)) {
+        executions = [];
+      }
+    } catch (error) {
+      // File doesn't exist or is invalid, start with empty array
+      executions = [];
+    }
+
+    // Add new execution
+    executions.push({
+      arn: executionArn,
+      timestamp: Date.now(),
+    });
+
+    // Write back to file
+    await fs.writeFile(processFilePath, JSON.stringify(executions, null, 2));
+    console.log(`📝 Execution persisted to ${processFilePath}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Error persisting execution:", errorMessage);
+    // Don't throw here - this is not critical for the main functionality
+  }
+}
+
+/**
+ * Check the status of a Step Functions execution
+ * @param executionArn - The execution ARN to check
+ * @returns Promise that resolves with the execution status
+ */
+export async function checkExecutionStatus(
+  executionArn: string
+): Promise<string> {
+  try {
+    const command = new DescribeExecutionCommand({
+      executionArn: executionArn,
+    });
+
+    const response = await sfnClient.send(command);
+
+    return response.status || "UNKNOWN";
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(
+      `❌ Error checking execution status for ${executionArn}:`,
+      errorMessage
+    );
+    throw new Error(`Failed to check execution status: ${errorMessage}`);
+  }
+}
+
+/**
+ * Poll execution status until completion
+ * @param executionArn - The execution ARN to poll
+ * @param intervalMs - Polling interval in milliseconds (default: 10000)
+ */
+export async function pollExecutionStatus(
+  executionArn: string,
+  intervalMs: number = 10000
+): Promise<void> {
+  try {
+    console.log(`🔄 Starting to poll execution: ${executionArn}`);
+
+    while (true) {
+      const status = await checkExecutionStatus(executionArn);
+      console.log(`[${executionArn}] status: ${status}`);
+
+      // Break if execution is not running
+      if (status !== "RUNNING") {
+        console.log(`✅ Execution completed with status: ${status}`);
+        break;
+      }
+
+      // Wait before next poll
+      console.log(`⏳ Waiting ${intervalMs}ms before next status check...`);
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Error polling execution status:`, errorMessage);
+    throw error;
+  }
 }
 
 // Export all functions

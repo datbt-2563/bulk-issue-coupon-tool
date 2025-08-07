@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as fsPromises from "fs/promises";
 import * as path from "path";
 import inquirer from "inquirer";
 
@@ -42,6 +43,11 @@ const barcodeModules: BarcodeModule[] = [
   {
     name: "Bulk issue",
     description: "Issue coupons via AWS Step Functions state machine",
+    requiresQuantity: false,
+  },
+  {
+    name: "Poll Execution Status",
+    description: "Monitor Step Functions execution status in real-time",
     requiresQuantity: false,
   },
 ];
@@ -366,6 +372,66 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         }
         break;
 
+      case "Poll Execution Status":
+        try {
+          console.log("📊 Loading execution history...");
+
+          // Read and parse process.json
+          const executions = await loadExecutionHistory();
+
+          if (executions.length === 0) {
+            console.log("ℹ️ No executions found in history.");
+            console.log("💡 Try running 'Bulk issue' first to create some executions.");
+            
+            const shouldContinue = await promptContinueOrExit();
+            if (shouldContinue) {
+              await main();
+              return;
+            } else {
+              console.log("👋 Goodbye!");
+              process.exit(0);
+            }
+            break;
+          }
+
+          // Prompt user to select an execution
+          const selectedArn = await promptExecutionSelection(executions);
+
+          console.log(`\n🔄 Starting to monitor execution...`);
+          console.log(`🔗 ARN: ${selectedArn}`);
+          console.log("💡 Press Ctrl+C to return to main menu\n");
+
+          // Import polling function and start monitoring
+          const { pollExecutionStatus } = await import("./bulk_issue/state_machine");
+          
+          // Set up polling with enhanced status display
+          await pollExecutionStatusWithHotkey(selectedArn, pollExecutionStatus);
+
+          // Return to main menu
+          const shouldContinue = await promptContinueOrExit();
+          if (shouldContinue) {
+            await main();
+            return;
+          } else {
+            console.log("👋 Goodbye!");
+            process.exit(0);
+          }
+        } catch (error) {
+          console.error(
+            "❌ Failed to poll execution status:",
+            error instanceof Error ? error.message : String(error)
+          );
+
+          const shouldContinue = await promptContinueOrExit();
+          if (shouldContinue) {
+            await main();
+            return;
+          } else {
+            process.exit(1);
+          }
+        }
+        break;
+
       default:
         throw new Error(`Unknown module: ${moduleName}`);
     }
@@ -410,6 +476,148 @@ async function main(): Promise<void> {
     console.error("❌ An error occurred:", error);
     process.exit(1);
   }
+}
+
+async function loadExecutionHistory(): Promise<Array<{ arn: string; timestamp: number }>> {
+  try {
+    const processFilePath = path.join(process.cwd(), "output", "sfn", "process.json");
+    
+    // Check if file exists
+    if (!fs.existsSync(processFilePath)) {
+      return [];
+    }
+
+    const data = await fsPromises.readFile(processFilePath, "utf-8");
+    const executions = JSON.parse(data);
+    
+    // Ensure it's an array and has valid structure
+    if (!Array.isArray(executions)) {
+      return [];
+    }
+
+    // Filter out invalid entries and sort by timestamp (newest first)
+    return executions
+      .filter(exec => exec && exec.arn && exec.timestamp)
+      .sort((a, b) => b.timestamp - a.timestamp);
+  } catch (error) {
+    console.error("❌ Error loading execution history:", error);
+    return [];
+  }
+}
+
+async function promptExecutionSelection(executions: Array<{ arn: string; timestamp: number }>): Promise<string> {
+  // Create user-friendly choices
+  const choices = executions.map((exec, index) => {
+    const date = new Date(exec.timestamp);
+    const formattedDate = date.toLocaleString();
+    const shortArn = exec.arn.split(':').pop() || exec.arn; // Get execution name part
+    
+    return {
+      name: `${index + 1}. ${shortArn} (${formattedDate})`,
+      value: exec.arn,
+    };
+  });
+
+  const { selectedArn } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "selectedArn",
+      message: "Select an execution to monitor:",
+      choices: choices,
+      pageSize: 10,
+    },
+  ]);
+
+  return selectedArn;
+}
+
+async function pollExecutionStatusWithHotkey(
+  executionArn: string, 
+  pollFunction: (arn: string, intervalMs?: number) => Promise<void>
+): Promise<void> {
+  return new Promise<void>(async (resolve, reject) => {
+    let pollingStopped = false;
+
+    // Set up keyboard input handling
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    const onKeyPress = (key: string) => {
+      if (key === '\u0003' || key.toLowerCase() === 'q' || key.toLowerCase() === 'b') { // Ctrl+C, q, or b
+        pollingStopped = true;
+        console.log("\n🛑 Polling stopped by user");
+        process.stdin.setRawMode(false);
+        process.stdin.pause();
+        process.stdin.removeListener('data', onKeyPress);
+        resolve();
+      }
+    };
+
+    process.stdin.on('data', onKeyPress);
+
+    try {
+      // Enhanced polling with timestamps and hotkey support
+      console.log(`🔄 Starting to poll execution: ${executionArn}`);
+      console.log("💡 Press 'q', 'b', or Ctrl+C to stop polling and return to menu\n");
+      
+      const startTime = Date.now();
+      let pollCount = 0;
+      
+      while (!pollingStopped) {
+        pollCount++;
+        const timestamp = new Date().toLocaleString();
+        
+        try {
+          // Import and use checkExecutionStatus directly for better control
+          const { checkExecutionStatus } = await import("./bulk_issue/state_machine");
+          const status = await checkExecutionStatus(executionArn);
+          
+          const shortArn = executionArn.split(':').pop() || executionArn;
+          console.log(`[${timestamp}] [${shortArn}] status: ${status}`);
+
+          // Break if execution is not running
+          if (status !== "RUNNING") {
+            console.log(`\n✅ Execution completed with final status: ${status}`);
+            const duration = Math.round((Date.now() - startTime) / 1000);
+            console.log(`📊 Polling completed - ${pollCount} checks over ${duration} seconds`);
+            break;
+          }
+
+          // Wait before next poll (10 seconds)
+          if (!pollingStopped) {
+            console.log(`⏳ Next check in 10 seconds... (Press 'q' to stop)`);
+            await new Promise<void>(resolve => {
+              const timeout = setTimeout(() => resolve(), 10000);
+              const originalListener = process.stdin.listeners('data')[0];
+              
+              const quickExit = () => {
+                clearTimeout(timeout);
+                resolve();
+              };
+              
+              process.stdin.once('data', quickExit);
+              
+              setTimeout(() => {
+                process.stdin.removeListener('data', quickExit);
+              }, 10000);
+            });
+          }
+        } catch (statusError) {
+          console.error(`❌ Error checking status: ${statusError}`);
+          await new Promise<void>(resolve => setTimeout(() => resolve(), 10000)); // Wait before retry
+        }
+      }
+    } catch (error) {
+      reject(error);
+    } finally {
+      // Clean up
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+      process.stdin.removeListener('data', onKeyPress);
+      resolve();
+    }
+  });
 }
 
 async function promptBulkIssueType(): Promise<string> {
