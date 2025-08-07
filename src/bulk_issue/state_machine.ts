@@ -65,7 +65,7 @@ export async function invokeBulkIssueStateMachine(
  */
 export async function bulkIssueGen16(issuedNumber: number): Promise<any> {
   const payload = {
-    couponMasterId: "3812681c-5867-45cc-b62c-7df7a39b3a24",
+    couponMasterId: "b5e04386-f446-4c5a-bce7-2b90900d2f5d",
     issuedNumber,
     barcodeSource: "CouponGeneral16Barcode",
     batchSize: 10,
@@ -87,7 +87,7 @@ export async function bulkIssueGen16(issuedNumber: number): Promise<any> {
  */
 export async function bulkIssuePos12(issuedNumber: number): Promise<any> {
   const payload = {
-    couponMasterId: "4945b79f-f311-4189-b75c-6b07776ab951",
+    couponMasterId: "38a01c2f-32d0-4479-9446-0a505f64e099",
     issuedNumber,
     barcodeSource: "CouponPos12Barcode",
     batchSize: 10,
