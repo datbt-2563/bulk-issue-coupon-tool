@@ -381,8 +381,10 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
 
           if (executions.length === 0) {
             console.log("ℹ️ No executions found in history.");
-            console.log("💡 Try running 'Bulk issue' first to create some executions.");
-            
+            console.log(
+              "💡 Try running 'Bulk issue' first to create some executions."
+            );
+
             const shouldContinue = await promptContinueOrExit();
             if (shouldContinue) {
               await main();
@@ -402,8 +404,10 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
           console.log("💡 Press Ctrl+C to return to main menu\n");
 
           // Import polling function and start monitoring
-          const { pollExecutionStatus } = await import("./bulk_issue/state_machine");
-          
+          const { pollExecutionStatus } = await import(
+            "./bulk_issue/state_machine"
+          );
+
           // Set up polling with enhanced status display
           await pollExecutionStatusWithHotkey(selectedArn, pollExecutionStatus);
 
@@ -478,10 +482,17 @@ async function main(): Promise<void> {
   }
 }
 
-async function loadExecutionHistory(): Promise<Array<{ arn: string; timestamp: number }>> {
+async function loadExecutionHistory(): Promise<
+  Array<{ arn: string; timestamp: number }>
+> {
   try {
-    const processFilePath = path.join(process.cwd(), "output", "sfn", "process.json");
-    
+    const processFilePath = path.join(
+      process.cwd(),
+      "output",
+      "sfn",
+      "process.json"
+    );
+
     // Check if file exists
     if (!fs.existsSync(processFilePath)) {
       return [];
@@ -489,7 +500,7 @@ async function loadExecutionHistory(): Promise<Array<{ arn: string; timestamp: n
 
     const data = await fsPromises.readFile(processFilePath, "utf-8");
     const executions = JSON.parse(data);
-    
+
     // Ensure it's an array and has valid structure
     if (!Array.isArray(executions)) {
       return [];
@@ -497,7 +508,7 @@ async function loadExecutionHistory(): Promise<Array<{ arn: string; timestamp: n
 
     // Filter out invalid entries and sort by timestamp (newest first)
     return executions
-      .filter(exec => exec && exec.arn && exec.timestamp)
+      .filter((exec) => exec && exec.arn && exec.timestamp)
       .sort((a, b) => b.timestamp - a.timestamp);
   } catch (error) {
     console.error("❌ Error loading execution history:", error);
@@ -505,13 +516,15 @@ async function loadExecutionHistory(): Promise<Array<{ arn: string; timestamp: n
   }
 }
 
-async function promptExecutionSelection(executions: Array<{ arn: string; timestamp: number }>): Promise<string> {
+async function promptExecutionSelection(
+  executions: Array<{ arn: string; timestamp: number }>
+): Promise<string> {
   // Create user-friendly choices
   const choices = executions.map((exec, index) => {
     const date = new Date(exec.timestamp);
     const formattedDate = date.toLocaleString();
-    const shortArn = exec.arn.split(':').pop() || exec.arn; // Get execution name part
-    
+    const shortArn = exec.arn.split(":").pop() || exec.arn; // Get execution name part
+
     return {
       name: `${index + 1}. ${shortArn} (${formattedDate})`,
       value: exec.arn,
@@ -532,7 +545,7 @@ async function promptExecutionSelection(executions: Array<{ arn: string; timesta
 }
 
 async function pollExecutionStatusWithHotkey(
-  executionArn: string, 
+  executionArn: string,
   pollFunction: (arn: string, intervalMs?: number) => Promise<void>
 ): Promise<void> {
   return new Promise<void>(async (resolve, reject) => {
@@ -541,71 +554,86 @@ async function pollExecutionStatusWithHotkey(
     // Set up keyboard input handling
     process.stdin.setRawMode(true);
     process.stdin.resume();
-    process.stdin.setEncoding('utf8');
+    process.stdin.setEncoding("utf8");
 
     const onKeyPress = (key: string) => {
-      if (key === '\u0003' || key.toLowerCase() === 'q' || key.toLowerCase() === 'b') { // Ctrl+C, q, or b
+      if (
+        key === "\u0003" ||
+        key.toLowerCase() === "q" ||
+        key.toLowerCase() === "b"
+      ) {
+        // Ctrl+C, q, or b
         pollingStopped = true;
         console.log("\n🛑 Polling stopped by user");
         process.stdin.setRawMode(false);
         process.stdin.pause();
-        process.stdin.removeListener('data', onKeyPress);
+        process.stdin.removeListener("data", onKeyPress);
         resolve();
       }
     };
 
-    process.stdin.on('data', onKeyPress);
+    process.stdin.on("data", onKeyPress);
 
     try {
       // Enhanced polling with timestamps and hotkey support
       console.log(`🔄 Starting to poll execution: ${executionArn}`);
-      console.log("💡 Press 'q', 'b', or Ctrl+C to stop polling and return to menu\n");
-      
+      console.log(
+        "💡 Press 'q', 'b', or Ctrl+C to stop polling and return to menu\n"
+      );
+
       const startTime = Date.now();
       let pollCount = 0;
-      
+
       while (!pollingStopped) {
         pollCount++;
         const timestamp = new Date().toLocaleString();
-        
+
         try {
           // Import and use checkExecutionStatus directly for better control
-          const { checkExecutionStatus } = await import("./bulk_issue/state_machine");
+          const { checkExecutionStatus } = await import(
+            "./bulk_issue/state_machine"
+          );
           const status = await checkExecutionStatus(executionArn);
-          
-          const shortArn = executionArn.split(':').pop() || executionArn;
+
+          const shortArn = executionArn.split(":").pop() || executionArn;
           console.log(`[${timestamp}] [${shortArn}] status: ${status}`);
 
           // Break if execution is not running
           if (status !== "RUNNING") {
-            console.log(`\n✅ Execution completed with final status: ${status}`);
+            console.log(
+              `\n✅ Execution completed with final status: ${status}`
+            );
             const duration = Math.round((Date.now() - startTime) / 1000);
-            console.log(`📊 Polling completed - ${pollCount} checks over ${duration} seconds`);
+            console.log(
+              `📊 Polling completed - ${pollCount} checks over ${duration} seconds`
+            );
             break;
           }
 
           // Wait before next poll (10 seconds)
           if (!pollingStopped) {
             console.log(`⏳ Next check in 10 seconds... (Press 'q' to stop)`);
-            await new Promise<void>(resolve => {
+            await new Promise<void>((resolve) => {
               const timeout = setTimeout(() => resolve(), 10000);
-              const originalListener = process.stdin.listeners('data')[0];
-              
+              const originalListener = process.stdin.listeners("data")[0];
+
               const quickExit = () => {
                 clearTimeout(timeout);
                 resolve();
               };
-              
-              process.stdin.once('data', quickExit);
-              
+
+              process.stdin.once("data", quickExit);
+
               setTimeout(() => {
-                process.stdin.removeListener('data', quickExit);
+                process.stdin.removeListener("data", quickExit);
               }, 10000);
             });
           }
         } catch (statusError) {
           console.error(`❌ Error checking status: ${statusError}`);
-          await new Promise<void>(resolve => setTimeout(() => resolve(), 10000)); // Wait before retry
+          await new Promise<void>((resolve) =>
+            setTimeout(() => resolve(), 10000)
+          ); // Wait before retry
         }
       }
     } catch (error) {
@@ -614,7 +642,7 @@ async function pollExecutionStatusWithHotkey(
       // Clean up
       process.stdin.setRawMode(false);
       process.stdin.pause();
-      process.stdin.removeListener('data', onKeyPress);
+      process.stdin.removeListener("data", onKeyPress);
       resolve();
     }
   });
