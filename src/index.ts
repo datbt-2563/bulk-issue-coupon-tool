@@ -39,6 +39,11 @@ const barcodeModules: BarcodeModule[] = [
     description: "Get Redis/Valkey overview and statistics",
     requiresQuantity: false,
   },
+  {
+    name: "Bulk issue",
+    description: "Issue coupons via AWS Step Functions state machine",
+    requiresQuantity: false,
+  },
 ];
 
 async function promptBarcodeType(): Promise<string> {
@@ -296,6 +301,70 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         }
         break;
 
+      case "Bulk issue":
+        try {
+          console.log("🏭 Starting bulk issue process...");
+
+          // Prompt for bulk issue type
+          const bulkIssueType = await promptBulkIssueType();
+
+          // Prompt for quantity
+          const issuedNumber = await promptBulkIssueQuantity();
+
+          // Import bulk issue functions
+          const bulkIssueModule = await import("./bulk_issue/state_machine");
+
+          let result: any;
+
+          if (bulkIssueType === "Mos") {
+            // For MOS, also prompt for coupon code
+            const couponCode = await promptMosCouponCode();
+            console.log(
+              `\n🚀 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
+            );
+            result = await bulkIssueModule.bulkIssueMos(
+              issuedNumber,
+              couponCode
+            );
+          } else if (bulkIssueType === "Pos12") {
+            console.log(`\n🚀 Bulk issuing ${issuedNumber} Pos12 coupons...`);
+            result = await bulkIssueModule.bulkIssuePos12(issuedNumber);
+          } else if (bulkIssueType === "Gen16") {
+            console.log(`\n🚀 Bulk issuing ${issuedNumber} Gen16 coupons...`);
+            result = await bulkIssueModule.bulkIssueGen16(issuedNumber);
+          }
+
+          // Display success message
+          console.log("\n✅ Bulk issue started successfully!");
+          console.log("🔗 Execution ARN:", result.executionArn);
+          console.log("📅 Start Date:", result.startDate);
+          console.log("📄 Status:", result.message);
+
+          // Prompt to continue or exit
+          const shouldContinue = await promptContinueOrExit();
+          if (shouldContinue) {
+            await main();
+            return;
+          } else {
+            console.log("👋 Goodbye!");
+            process.exit(0);
+          }
+        } catch (error) {
+          console.error(
+            "❌ Failed to start bulk issue:",
+            error instanceof Error ? error.message : String(error)
+          );
+
+          const shouldContinue = await promptContinueOrExit();
+          if (shouldContinue) {
+            await main();
+            return;
+          } else {
+            process.exit(1);
+          }
+        }
+        break;
+
       default:
         throw new Error(`Unknown module: ${moduleName}`);
     }
@@ -340,6 +409,58 @@ async function main(): Promise<void> {
     console.error("❌ An error occurred:", error);
     process.exit(1);
   }
+}
+
+async function promptBulkIssueType(): Promise<string> {
+  const { bulkIssueType } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "bulkIssueType",
+      message: "Select bulk issue type:",
+      choices: [
+        { name: "Mos", value: "Mos" },
+        { name: "Pos12", value: "Pos12" },
+        { name: "Gen16", value: "Gen16" },
+      ],
+    },
+  ]);
+  return bulkIssueType;
+}
+
+async function promptBulkIssueQuantity(): Promise<number> {
+  const { quantity } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "quantity",
+      message: "Enter number of codes to issue:",
+      validate: (input: string): boolean | string => {
+        const num = parseInt(input);
+        if (isNaN(num) || num <= 0) {
+          return "Please enter a valid positive number";
+        }
+        return true;
+      },
+      filter: (input: string): number => parseInt(input),
+    },
+  ]);
+  return quantity;
+}
+
+async function promptMosCouponCode(): Promise<string> {
+  const { couponCode } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "couponCode",
+      message: "Enter coupon code for Mos:",
+      validate: (input: string): boolean | string => {
+        if (!input || input.trim() === "") {
+          return "Please enter a valid coupon code";
+        }
+        return true;
+      },
+    },
+  ]);
+  return couponCode.trim();
 }
 
 if (require.main === module) {

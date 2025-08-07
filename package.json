@@ -17,11 +17,13 @@
     "deleted-csv": "ts-node src/insert_barcode/deleted-csv.ts",
     "upload-s3": "ts-node src/insert_barcode/upload-to-s3.ts",
     "valkey-overview": "ts-node src/valkey/overview.ts",
+    "bulk-issue": "ts-node src/bulk_issue/state_machine.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.862.0",
     "@aws-sdk/client-s3": "^3.862.0",
+    "@aws-sdk/client-sfn": "^3.862.0",
     "@types/archiver": "^6.0.3",
     "@types/inquirer": "^9.0.9",
     "archiver": "^7.0.1",

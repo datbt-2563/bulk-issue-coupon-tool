@@ -1,0 +1,166 @@
+import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
+
+// Initialize Step Functions client for ap-northeast-1 region
+const sfnClient = new SFNClient({
+  region: "ap-northeast-1",
+});
+
+// Note: Replace <accountId> with actual AWS account ID in production
+const STATE_MACHINE_ARN =
+  "arn:aws:states:ap-northeast-1:856562439801:stateMachine:dev-coupon-bulkIssuedCoupon-machine";
+
+/**
+ * Core function to invoke the bulk issue state machine
+ * @param payload - The payload to send to the state machine
+ * @returns Promise that resolves with the state machine execution result
+ */
+export async function invokeBulkIssueStateMachine(
+  payload: Record<string, any>
+): Promise<any> {
+  try {
+    console.log("🚀 Starting bulk issue state machine execution...");
+    console.log("📦 Payload:", JSON.stringify(payload, null, 2));
+
+    // Create the execution command
+    const command = new StartExecutionCommand({
+      stateMachineArn: STATE_MACHINE_ARN,
+      input: JSON.stringify(payload),
+      // Generate a unique execution name with timestamp
+      name: `bulk-issue-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`,
+    });
+
+    // Start the execution
+    const response = await sfnClient.send(command);
+
+    console.log("✅ State machine execution started successfully");
+    console.log("🔗 Execution ARN:", response.executionArn);
+
+    // Note: StartExecutionCommand doesn't wait for completion or return payload
+    // It only starts the execution and returns execution metadata
+    // For synchronous execution, you would need to use DescribeExecutionCommand
+    // and poll for completion, or use a different service pattern
+
+    return {
+      executionArn: response.executionArn,
+      startDate: response.startDate,
+      success: true,
+      message: "State machine execution started successfully",
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Error invoking bulk issue state machine:", errorMessage);
+
+    throw new Error(
+      `Failed to invoke bulk issue state machine: ${errorMessage}`
+    );
+  }
+}
+
+/**
+ * Bulk issue Gen16 coupons
+ * @param issuedNumber - Number of coupons to issue
+ * @returns Promise that resolves with the execution result
+ */
+export async function bulkIssueGen16(issuedNumber: number): Promise<any> {
+  const payload = {
+    couponMasterId: "3812681c-5867-45cc-b62c-7df7a39b3a24",
+    issuedNumber,
+    barcodeSource: "CouponGeneral16Barcode",
+    batchSize: 10,
+    publishedFrom: "admin",
+    publishedOrganizationId: "5d121455-d98c-417d-88e4-7381f442e921",
+    publishedOrganizationName: "e2e organization",
+    fifo: false,
+    description: "e2e test",
+  };
+
+  console.log(`📊 Bulk issuing ${issuedNumber} Gen16 coupons...`);
+  return await invokeBulkIssueStateMachine(payload);
+}
+
+/**
+ * Bulk issue Pos12 coupons
+ * @param issuedNumber - Number of coupons to issue
+ * @returns Promise that resolves with the execution result
+ */
+export async function bulkIssuePos12(issuedNumber: number): Promise<any> {
+  const payload = {
+    couponMasterId: "4945b79f-f311-4189-b75c-6b07776ab951",
+    issuedNumber,
+    barcodeSource: "CouponPos12Barcode",
+    batchSize: 10,
+    publishedFrom: "admin",
+    publishedOrganizationId: "5d121455-d98c-417d-88e4-7381f442e921",
+    publishedOrganizationName: "e2e organization",
+    fifo: false,
+    description: "e2e test",
+  };
+
+  console.log(`📊 Bulk issuing ${issuedNumber} Pos12 coupons...`);
+  return await invokeBulkIssueStateMachine(payload);
+}
+
+/**
+ * Bulk issue MOS coupons
+ * @param issuedNumber - Number of coupons to issue
+ * @param couponCode - The coupon code to use
+ * @returns Promise that resolves with the execution result
+ */
+export async function bulkIssueMos(
+  issuedNumber: number,
+  couponCode: string
+): Promise<any> {
+  const payload = {
+    couponMasterId: "a5f2ffaf-8d28-466f-a57a-1dd0100f09bc",
+    couponCode,
+    issuedNumber,
+    barcodeSource: "CouponMosBarcode",
+    batchSize: 10,
+    publishedFrom: "admin",
+    publishedOrganizationId: "11c67b7c-793e-41c9-8804-8f6c368afb81",
+    publishedOrganizationName: "e2e",
+    description: "e2e",
+  };
+
+  console.log(
+    `📊 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
+  );
+  return await invokeBulkIssueStateMachine(payload);
+}
+
+// Export all functions
+export { invokeBulkIssueStateMachine as default };
+
+// Example usage when run directly
+if (require.main === module) {
+  async function testBulkIssue() {
+    try {
+      console.log("🧪 Testing bulk issue functions...");
+
+      // Test Gen16
+      console.log("\n--- Testing Gen16 Bulk Issue ---");
+      const gen16Result = await bulkIssueGen16(5);
+      console.log("Gen16 Result:", gen16Result);
+
+      // Test Pos12
+      console.log("\n--- Testing Pos12 Bulk Issue ---");
+      const pos12Result = await bulkIssuePos12(3);
+      console.log("Pos12 Result:", pos12Result);
+
+      // Test MOS
+      console.log("\n--- Testing MOS Bulk Issue ---");
+      const mosResult = await bulkIssueMos(2, "TEST-COUPON-001");
+      console.log("MOS Result:", mosResult);
+    } catch (error) {
+      console.error(
+        "💥 Test failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  }
+
+  testBulkIssue();
+}
