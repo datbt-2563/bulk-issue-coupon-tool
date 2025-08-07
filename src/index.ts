@@ -1,76 +1,137 @@
 import * as fs from "fs";
 import * as path from "path";
+import inquirer from "inquirer";
 
-interface ScriptOption {
+interface BarcodeModule {
   name: string;
   description: string;
-  file: string;
+  requiresQuantity: boolean;
 }
 
-const scripts: ScriptOption[] = [
+const barcodeModules: BarcodeModule[] = [
   {
-    name: "coupon-mos",
-    description: "Generate MOS coupon codes with pattern B[6digits]2[6digits]B",
-    file: "./coupon-mos",
-  },
-  {
-    name: "general-16",
-    description: "Generate 16-digit general codes",
-    file: "./general_16",
-  },
-  {
-    name: "pos12",
+    name: "Pos12",
     description: "Generate POS unit codes with pattern A[13digits]C",
-    file: "./pos12",
+    requiresQuantity: true,
   },
   {
-    name: "deleted-csv",
-    description: "Delete all CSV files in current directory",
-    file: "./deleted-csv",
+    name: "Gen16",
+    description: "Generate 16-digit general codes",
+    requiresQuantity: true,
+  },
+  {
+    name: "Mos",
+    description: "Generate MOS coupon codes with pattern B[6digits]2[6digits]B",
+    requiresQuantity: true,
+  },
+  {
+    name: "Clean",
+    description: "Delete all CSV files in current and output directories",
+    requiresQuantity: false,
   },
 ];
 
-function showMenu(): void {
-  console.log("\n🎫 Bulk Issue Coupon Tool");
-  console.log("=".repeat(30));
-  scripts.forEach((script, index) => {
-    console.log(`${index + 1}. ${script.name} - ${script.description}`);
-  });
-  console.log("0. Exit");
-  console.log("=".repeat(30));
+async function promptBarcodeType(): Promise<string> {
+  const { barcodeType } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "barcodeType",
+      message: "Select a barcode type:",
+      choices: barcodeModules.map((module) => ({
+        name: `${module.name} - ${module.description}`,
+        value: module.name,
+      })),
+    },
+  ]);
+  return barcodeType;
 }
 
-async function runScript(scriptPath: string): Promise<void> {
+async function promptQuantity(): Promise<number> {
+  const { quantity } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "quantity",
+      message: "Enter the quantity to generate:",
+      validate: (input: string): boolean | string => {
+        const num = parseInt(input);
+        if (isNaN(num) || num <= 0) {
+          return "Please enter a valid positive number";
+        }
+        return true;
+      },
+      filter: (input: string): number => parseInt(input),
+    },
+  ]);
+  return quantity;
+}
+
+async function runModule(moduleName: string, quantity?: number): Promise<void> {
   try {
-    await import(scriptPath);
+    let outputPath: string;
+
+    switch (moduleName) {
+      case "Pos12":
+        const pos12 = await import("./pos12");
+        outputPath = pos12.default(quantity!);
+        console.log(`✅ POS12 codes generated successfully!`);
+        console.log(`📁 Output directory: ${outputPath}`);
+        break;
+
+      case "Gen16":
+        const gen16 = await import("./general_16");
+        outputPath = gen16.default(quantity!);
+        console.log(`✅ General 16-digit codes generated successfully!`);
+        console.log(`📁 Output directory: ${outputPath}`);
+        break;
+
+      case "Mos":
+        const mos = await import("./coupon-mos");
+        outputPath = mos.default(quantity!);
+        console.log(`✅ MOS coupon codes generated successfully!`);
+        console.log(`📁 Output directory: ${outputPath}`);
+        break;
+
+      case "Clean":
+        const clean = await import("./deleted-csv");
+        clean.default();
+        break;
+
+      default:
+        throw new Error(`Unknown module: ${moduleName}`);
+    }
   } catch (error) {
-    console.error(`Error running script: ${error}`);
+    console.error(`❌ Error running ${moduleName}:`, error);
+    throw error;
   }
 }
 
-function main(): void {
-  const args: string[] = process.argv.slice(2);
+async function main(): Promise<void> {
+  try {
+    console.log("\n🎫 Bulk Issue Coupon Tool");
+    console.log("=".repeat(40));
 
-  if (args.length === 0) {
-    showMenu();
-    console.log("\nUsage: npm run dev [script-name]");
-    console.log("Example: npm run dev coupon-mos");
-    return;
+    const selectedType = await promptBarcodeType();
+    const moduleInfo = barcodeModules.find((m) => m.name === selectedType);
+
+    if (!moduleInfo) {
+      throw new Error(`Module not found: ${selectedType}`);
+    }
+
+    let quantity: number | undefined;
+    if (moduleInfo.requiresQuantity) {
+      quantity = await promptQuantity();
+    }
+
+    console.log(
+      `\n🚀 Running ${selectedType}${
+        quantity ? ` with quantity ${quantity}` : ""
+      }...`
+    );
+    await runModule(selectedType, quantity);
+  } catch (error) {
+    console.error("❌ An error occurred:", error);
+    process.exit(1);
   }
-
-  const scriptName: string = args[0];
-  const script: ScriptOption | undefined = scripts.find(
-    (s) => s.name === scriptName
-  );
-
-  if (!script) {
-    console.error(`❌ Script '${scriptName}' not found.`);
-    showMenu();
-    return;
-  }
-
-  console.log(`🚀 Running ${script.name}...`);
-  runScript(script.file);
 }
 
 if (require.main === module) {

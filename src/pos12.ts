@@ -1,14 +1,5 @@
 import * as fs from "fs";
-
-const total: number = 1000000; // Tổng số lượng mã cần tạo
-const perFile: number = 1000; // Số lượng mã mỗi file
-const fileCount: number = total / perFile;
-const path: string = `./coupon_kfc_pos_number-e2e-${total}-rows`;
-
-if (!fs.existsSync(path)) {
-  fs.mkdirSync(path, { recursive: true });
-  console.log(`📁 Đã tạo thư mục: ${path}`);
-}
+import * as path from "path";
 
 function generateRandom13Digits(): string {
   // Tạo một chuỗi 13 chữ số, đảm bảo không bị thiếu số 0 ở đầu
@@ -30,19 +21,51 @@ function generateUniqueUnitCodes(
   return Array.from(codes);
 }
 
-const allCodes: Set<string> = new Set();
+export default function generate(total: number = 1000000): string {
+  const perFile: number = 1000; // Số lượng mã mỗi file
+  const fileCount: number = total / perFile;
 
-for (let i = 1; i <= fileCount; i++) {
-  const unitCodes: string[] = generateUniqueUnitCodes(perFile, allCodes);
-  // create folder
+  console.log(`🚀 Bắt đầu tạo ${total} mã POS12...`);
 
-  const fileName: string = `${path}/unit_codes_total_${total}_${i}.csv`;
-  fs.writeFileSync(fileName, unitCodes.join("\n"), "utf8");
-  console.log(
-    `✅ Đã tạo xong file ${fileName} chứa ${perFile} mã không trùng.`
+  // Ensure output directory exists
+  const outputDir: string = "output";
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const targetDir: string = path.join(
+    outputDir,
+    `coupon_kfc_pos_number-e2e-${total}-rows`
   );
+
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+    console.log(`📁 Đã tạo thư mục: ${targetDir}`);
+  }
+
+  const allCodes: Set<string> = new Set();
+
+  for (let i = 1; i <= fileCount; i++) {
+    const unitCodes: string[] = generateUniqueUnitCodes(perFile, allCodes);
+
+    const fileName: string = path.join(
+      targetDir,
+      `unit_codes_total_${total}_${i}.csv`
+    );
+    fs.writeFileSync(fileName, unitCodes.join("\n"), "utf8");
+    console.log(
+      `✅ Đã tạo xong file ${fileName} chứa ${perFile} mã không trùng.`
+    );
+  }
+
+  console.log(
+    `🎉 Đã tạo tổng cộng ${total} mã, chia thành ${fileCount} file CSV.`
+  );
+
+  return targetDir;
 }
 
-console.log(
-  `🎉 Đã tạo tổng cộng ${total} mã, chia thành ${fileCount} file CSV.`
-);
+// Run directly if this file is executed
+if (require.main === module) {
+  generate();
+}
