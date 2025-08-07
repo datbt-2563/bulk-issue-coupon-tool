@@ -34,6 +34,11 @@ const barcodeModules: BarcodeModule[] = [
     description: "Upload a generated folder to S3 as a zip archive",
     requiresQuantity: false,
   },
+  {
+    name: "Redis Overview",
+    description: "Get Redis/Valkey overview and statistics",
+    requiresQuantity: false,
+  },
 ];
 
 async function promptBarcodeType(): Promise<string> {
@@ -120,6 +125,18 @@ async function promptUploadConfirmation(): Promise<boolean> {
   return shouldUpload;
 }
 
+async function promptContinueOrExit(): Promise<boolean> {
+  const { shouldContinue } = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "shouldContinue",
+      message: "Return to main menu?",
+      default: true,
+    },
+  ]);
+  return shouldContinue;
+}
+
 function generateTimestamp(): string {
   const now = new Date();
   const year = now.getFullYear();
@@ -138,7 +155,7 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
 
     switch (moduleName) {
       case "Pos12":
-        const pos12 = await import("./pos12");
+        const pos12 = await import("./insert_barcode/pos12");
         outputPath = pos12.default(quantity!);
         console.log(`✅ POS12 codes generated successfully!`);
         console.log(`📁 Output directory: ${outputPath}`);
@@ -149,7 +166,7 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
           const timestamp = generateTimestamp();
           const folderName = path.basename(outputPath);
           const customKey = `${folderName}-${timestamp}.zip`;
-          const uploadToS3 = await import("./upload-to-s3");
+          const uploadToS3 = await import("./insert_barcode/upload-to-s3");
           const s3Url = await uploadToS3.default(folderName, customKey);
           console.log(`✅ Folder uploaded successfully to S3!`);
           console.log(`🌐 S3 URL: ${s3Url}`);
@@ -159,7 +176,7 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         break;
 
       case "Gen16":
-        const gen16 = await import("./general_16");
+        const gen16 = await import("./insert_barcode/general_16");
         outputPath = gen16.default(quantity!);
         console.log(`✅ General 16-digit codes generated successfully!`);
         console.log(`📁 Output directory: ${outputPath}`);
@@ -171,7 +188,7 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
           const folderName = path.basename(outputPath);
           const customKey = `${folderName}-${timestamp}.zip`;
 
-          const uploadToS3 = await import("./upload-to-s3");
+          const uploadToS3 = await import("./insert_barcode/upload-to-s3");
           const s3Url = await uploadToS3.default(folderName, customKey);
           console.log(`✅ Folder uploaded successfully to S3!`);
           console.log(`🌐 S3 URL: ${s3Url}`);
@@ -181,7 +198,7 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         break;
 
       case "Mos":
-        const mos = await import("./coupon-mos");
+        const mos = await import("./insert_barcode/coupon-mos");
         outputPath = mos.default(quantity!);
         console.log(`✅ MOS coupon codes generated successfully!`);
         console.log(`📁 Output directory: ${outputPath}`);
@@ -193,7 +210,7 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
           const folderName = path.basename(outputPath);
           const customKey = `${folderName}-${timestamp}.zip`;
 
-          const uploadToS3 = await import("./upload-to-s3");
+          const uploadToS3 = await import("./insert_barcode/upload-to-s3");
           const s3Url = await uploadToS3.default(folderName, customKey);
           console.log(`✅ Folder uploaded successfully to S3!`);
           console.log(`🌐 S3 URL: ${s3Url}`);
@@ -203,7 +220,7 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         break;
 
       case "Clean":
-        const clean = await import("./deleted-csv");
+        const clean = await import("./insert_barcode/deleted-csv");
         clean.default();
         break;
 
@@ -212,12 +229,70 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         const shouldUpload = await promptUploadConfirmation();
 
         if (shouldUpload) {
-          const uploadToS3 = await import("./upload-to-s3");
+          const uploadToS3 = await import("./insert_barcode/upload-to-s3");
           const s3Url = await uploadToS3.default(folderName);
           console.log(`✅ Folder uploaded successfully to S3!`);
           console.log(`🌐 S3 URL: ${s3Url}`);
         } else {
           console.log(`⏭ Upload skipped by the user.`);
+        }
+        break;
+
+      case "Redis Overview":
+        try {
+          console.log("🔍 Fetching Redis/Valkey overview...");
+          const valkeyModule = await import("./valkey/overview");
+          const overview = await valkeyModule.getValkeyOverview();
+
+          console.log("\n📊 Redis/Valkey Overview:");
+          console.log("=".repeat(50));
+
+          // Pretty-print the stats
+          if (typeof overview === "object" && overview !== null) {
+            // If it's an object, try to display it nicely
+            if (Array.isArray(overview)) {
+              console.table(overview);
+            } else {
+              // Display object properties in a formatted way
+              Object.entries(overview).forEach(([key, value]) => {
+                if (typeof value === "object" && value !== null) {
+                  console.log(`${key}:`);
+                  console.table(value);
+                } else {
+                  console.log(`${key}: ${value}`);
+                }
+              });
+            }
+          } else {
+            // Fallback to JSON stringify
+            console.log(JSON.stringify(overview, null, 2));
+          }
+
+          console.log("=".repeat(50));
+
+          // Prompt to continue or exit
+          const shouldContinue = await promptContinueOrExit();
+          if (shouldContinue) {
+            // Return to main menu by calling main() again
+            await main();
+            return;
+          } else {
+            console.log("👋 Goodbye!");
+            process.exit(0);
+          }
+        } catch (error) {
+          console.error(
+            "❌ Failed to get Redis overview:",
+            error instanceof Error ? error.message : String(error)
+          );
+
+          const shouldContinue = await promptContinueOrExit();
+          if (shouldContinue) {
+            await main();
+            return;
+          } else {
+            process.exit(1);
+          }
         }
         break;
 
@@ -253,6 +328,14 @@ async function main(): Promise<void> {
       }...`
     );
     await runModule(selectedType, quantity);
+
+    const shouldContinue = await promptContinueOrExit();
+    if (shouldContinue) {
+      await main(); // Restart the process
+    } else {
+      console.log("👋 Goodbye!");
+      process.exit(0);
+    }
   } catch (error) {
     console.error("❌ An error occurred:", error);
     process.exit(1);
