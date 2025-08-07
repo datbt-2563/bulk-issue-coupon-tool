@@ -318,7 +318,8 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
 
           if (bulkIssueType === "Mos") {
             // For MOS, also prompt for coupon code
-            const couponCode = await promptMosCouponCode();
+            // const couponCode = await promptMosCouponCode();
+            const couponCode = "999999";
             console.log(
               `\n🚀 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
             );

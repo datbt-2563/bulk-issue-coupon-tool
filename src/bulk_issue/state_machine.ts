@@ -113,7 +113,7 @@ export async function bulkIssueMos(
   couponCode: string
 ): Promise<any> {
   const payload = {
-    couponMasterId: "a5f2ffaf-8d28-466f-a57a-1dd0100f09bc",
+    couponMasterId: "0448f6e7-f823-4721-abeb-80d6a70038a9",
     couponCode,
     issuedNumber,
     barcodeSource: "CouponMosBarcode",
