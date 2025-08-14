@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as fsPromises from "fs/promises";
 import * as path from "path";
 import inquirer from "inquirer";
+import { executeTestCases } from "./execute-test-case";
 
 interface BarcodeModule {
   name: string;
@@ -38,6 +39,11 @@ const barcodeModules: BarcodeModule[] = [
   {
     name: "Upload",
     description: "Upload a generated folder to S3 as a zip archive",
+    requiresQuantity: false,
+  },
+  {
+    name: "Execute test cases",
+    description: "Run the test cases defined in the test-case.ts file",
     requiresQuantity: false,
   },
   {
@@ -168,7 +174,7 @@ async function promptContinueOrExit(): Promise<boolean> {
   return shouldContinue;
 }
 
-function generateTimestamp(): string {
+export function generateTimestamp(): string {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -437,6 +443,18 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
           } else {
             process.exit(1);
           }
+        }
+        break;
+
+      case "Execute test cases":
+        try {
+          await executeTestCases();
+          console.log("✅ Test cases executed successfully!");
+        } catch (error) {
+          console.error(
+            "❌ Failed to execute test cases:",
+            error instanceof Error ? error.message : String(error)
+          );
         }
         break;
 
