@@ -151,7 +151,7 @@ export const executeTestCase = async (params: {
     console.log(`✅ Folder uploaded successfully to S3!`);
     console.log(`🌐 S3 URL: ${s3Url}`);
 
-    const estimatedTimeInSecond = Math.ceil(issueMoreNumber / 900); // Assuming each process takes 10 seconds
+    const estimatedTimeInSecond = Math.ceil(issueMoreNumber / 200); // Assuming each process takes 10 seconds
     console.log(
       `⏳ Estimated time to process ${issueMoreNumber} barcodes: ${estimatedTimeInSecond} seconds`
     );
@@ -163,8 +163,8 @@ export const executeTestCase = async (params: {
     while (true) {
       const overview = await valkeyModule.getValkeyOverview();
 
-      // Sleep for 10 seconds before checking again
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      // Sleep for 20 seconds before checking again
+      await new Promise((resolve) => setTimeout(resolve, 20000));
 
       const currentBarcodeCount =
         barcodeType === "Pos12"
