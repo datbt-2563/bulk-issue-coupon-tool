@@ -1,0 +1,76 @@
+[
+  {
+    "testCaseNo": 4,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755217158294-bac8x5u5n",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755217158890-tpsejmrup"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 5,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755219262688-8wi88nk5h",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755219262888-4ik8dpnqz"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 6,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755236720227-v1mgrtn3z",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755236720851-8g7kh23gs"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 15,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755477071751-wraqqjyev"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 17,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755479296892-quy3ulctb",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755479297411-vvvvfs08v"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 18,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755481401757-87j4v8wnc",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755481401944-9exwymf4l"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 7,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755483475414-h4pfghtqi",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755483475609-88umx0360",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755483475772-yvkz2f3yf"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 8,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755492130307-d7sq6rs6d",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755492130929-iykt1hqum",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755492131096-r4w0yvy7a"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 19,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755505662509-dthr5wteh",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755505663102-991f6u318",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755505663281-kha3fy2b9"
+    ],
+    "status": "finished"
+  }
+]

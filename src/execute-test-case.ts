@@ -27,30 +27,34 @@ export const testCases: {
   testPattern: keyof typeof testPattens;
   status: "new" | "processing" | "pass" | "fail";
 }[] = [
-  { no: 1, barcodeType: "Pos12", testPattern: "TC-001", status: "new" },
-  { no: 2, barcodeType: "Pos12", testPattern: "TC-001", status: "new" },
-  { no: 3, barcodeType: "Pos12", testPattern: "TC-001", status: "new" },
-  { no: 4, barcodeType: "Pos12", testPattern: "TC-002", status: "new" },
-  { no: 5, barcodeType: "Pos12", testPattern: "TC-002", status: "new" },
-  { no: 6, barcodeType: "Pos12", testPattern: "TC-002", status: "new" },
-  { no: 7, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
-  { no: 8, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
-  { no: 9, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
-  { no: 10, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
-  { no: 11, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
-  { no: 12, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
+  { no: 1, barcodeType: "Pos12", testPattern: "TC-001", status: "pass" },
+  { no: 2, barcodeType: "Pos12", testPattern: "TC-001", status: "pass" },
+  { no: 3, barcodeType: "Pos12", testPattern: "TC-001", status: "pass" },
+  { no: 4, barcodeType: "Pos12", testPattern: "TC-002", status: "pass" },
+  { no: 5, barcodeType: "Pos12", testPattern: "TC-002", status: "pass" },
+  { no: 6, barcodeType: "Pos12", testPattern: "TC-002", status: "pass" },
+
   { no: 13, barcodeType: "Gen16", testPattern: "TC-001", status: "pass" },
-  { no: 14, barcodeType: "Gen16", testPattern: "TC-001", status: "new" },
+  { no: 14, barcodeType: "Gen16", testPattern: "TC-001", status: "pass" },
   { no: 15, barcodeType: "Gen16", testPattern: "TC-001", status: "new" },
   { no: 16, barcodeType: "Gen16", testPattern: "TC-002", status: "pass" },
   { no: 17, barcodeType: "Gen16", testPattern: "TC-002", status: "new" },
   { no: 18, barcodeType: "Gen16", testPattern: "TC-002", status: "new" },
+
   { no: 19, barcodeType: "Gen16", testPattern: "TC-003", status: "new" },
   { no: 20, barcodeType: "Gen16", testPattern: "TC-003", status: "new" },
   { no: 21, barcodeType: "Gen16", testPattern: "TC-003", status: "new" },
   { no: 22, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
   { no: 23, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
   { no: 24, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
+
+  { no: 7, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
+  { no: 8, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
+  { no: 9, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
+  { no: 10, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
+  { no: 11, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
+  { no: 12, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
+
   { no: 25, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
   { no: 26, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
   { no: 27, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
@@ -86,6 +90,24 @@ export const log = (
   console.log(`Log file updated: ${logFilePath}`);
   console.log(`Current log data: ${JSON.stringify(logData, null, 2)}`);
   console.log(`Log file path: ${logFilePath}`);
+};
+
+export const getLog = async (): Promise<
+  { testCaseNo: number; stateMachineArns: string[]; status: string }[]
+> => {
+  const logFilePath = path.join(__dirname, "log.json");
+  const fs = require("fs");
+  // Get content from log.json
+  let logData: {
+    testCaseNo: number;
+    stateMachineArns: string[];
+    status: string;
+  }[] = [];
+  if (fs.existsSync(logFilePath)) {
+    const fileContent = fs.readFileSync(logFilePath, "utf-8");
+    logData = JSON.parse(fileContent);
+  }
+  return logData;
 };
 
 export const executeTestCase = async (params: {
@@ -154,6 +176,12 @@ export const executeTestCase = async (params: {
     const estimatedTimeInSecond = Math.ceil(issueMoreNumber / 200); // Assuming each process takes 10 seconds
     console.log(
       `⏳ Estimated time to process ${issueMoreNumber} barcodes: ${estimatedTimeInSecond} seconds`
+    );
+    // Log time will continue before sleep
+    console.log(
+      `⏳ Sleeping for ${estimatedTimeInSecond} seconds..., will continue at ${new Date(
+        Date.now() + estimatedTimeInSecond * 1000
+      ).toLocaleTimeString()}`
     );
     // sleep for the estimated time
     await new Promise((resolve) =>
@@ -233,6 +261,15 @@ export const executeTestCase = async (params: {
 
   // Sleep 33 minutes to wait for the process to complete
   const sleepTime = 33 * 60 * 1000; // 33 minutes
+
+  // Log sleep time and time to continue
+  console.log(
+    `⏳ Sleeping for ${
+      sleepTime / 1000
+    } seconds..., will continue at ${new Date(
+      Date.now() + sleepTime
+    ).toLocaleTimeString()}`
+  );
   await new Promise((resolve) => setTimeout(resolve, sleepTime));
 
   const MAX_TIMEOUT = 3 * 60 * 60 * 1000; // 3 hour
@@ -251,20 +288,25 @@ export const executeTestCase = async (params: {
 };
 
 export const executeTestCases = async () => {
-  const newTestCases = testCases.filter(
-    (testCase) => testCase.status === "new"
-  );
+  const logData = await getLog();
+  const executedTestCases = logData
+    .filter((entry) => entry.status === "finished")
+    .map((entry) => entry.testCaseNo);
+
+  const newTestCases = testCases
+    .filter((testCase) => testCase.status === "new")
+    .filter((testCase) => !executedTestCases.includes(testCase.no));
 
   console.log("Executing test cases...");
 
-  for (const testCase of testCases) {
+  for (const testCase of newTestCases) {
     console.log(
       `************** Test Case No: ${testCase.no}, Barcode Type: ${testCase.barcodeType}, Test Pattern: ${testCase.testPattern}, Status: ${testCase.status}`
     );
 
     await executeTestCase(testCase);
 
-    break; // Remove this line to execute all test cases
+    // break; // Remove this line to execute all test cases
   }
 
   console.log("All test cases executed.");
