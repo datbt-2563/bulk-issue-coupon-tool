@@ -72,5 +72,14 @@
       "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755505663281-kha3fy2b9"
     ],
     "status": "finished"
+  },
+  {
+    "testCaseNo": 20,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755565823295-tw53axx5t",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755565823931-n5dmed31b",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755565824095-mj3x6lz85"
+    ],
+    "status": "finished"
   }
 ]
