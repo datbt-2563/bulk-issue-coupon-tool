@@ -121,19 +121,78 @@ export async function bulkIssuePos12(issuedNumber: number): Promise<any> {
  */
 export async function bulkIssueMos(
   issuedNumber: number,
-  couponCode: string
+  couponCode: "123456" | "654321" | "777777" | "999999"
 ): Promise<any> {
-  const payload = {
-    couponMasterId: "0448f6e7-f823-4721-abeb-80d6a70038a9",
-    couponCode,
-    issuedNumber,
-    barcodeSource: "CouponMosBarcode",
-    batchSize: 10000,
-    publishedFrom: "admin",
-    publishedOrganizationId: "11c67b7c-793e-41c9-8804-8f6c368afb81",
-    publishedOrganizationName: "e2e",
-    description: "e2e",
-  };
+  // const payload = {
+  //   couponMasterId: "0448f6e7-f823-4721-abeb-80d6a70038a9",
+  //   couponCode,
+  //   issuedNumber,
+  //   barcodeSource: "CouponMosBarcode",
+  //   batchSize: 10000,
+  //   publishedFrom: "admin",
+  //   publishedOrganizationId: "11c67b7c-793e-41c9-8804-8f6c368afb81",
+  //   publishedOrganizationName: "e2e",
+  //   description: "e2e",
+  // };
+
+  // const couponCodes = ["123456", "654321", "777777", "999999"];
+
+  const payloads = [
+    {
+      couponMasterId: "c68ec1c0-356d-41cb-bc81-0b299e4e27b3",
+      couponCode: "123456",
+      issuedNumber,
+      barcodeSource: "CouponMosBarcode",
+      batchSize: 10000,
+      publishedFrom: "admin",
+      publishedOrganizationId: "c6e4cd2e-a489-441e-ae94-edcf7b011146",
+      publishedOrganizationName: "e2e",
+      description: "e2e",
+    },
+    {
+      couponMasterId: "83514e83-6566-4061-93cd-0b29bda855eb",
+      couponCode: "654321",
+      issuedNumber,
+      barcodeSource: "CouponMosBarcode",
+      batchSize: 10000,
+      publishedFrom: "admin",
+      publishedOrganizationId: "5edceeb6-5a5c-46ec-9f7f-8fd8e90aff84",
+      publishedOrganizationName: "e2e",
+      description: "e2e",
+    },
+    {
+      couponMasterId: "8e9a189a-2f35-4ff0-952d-e7100f32aa2e",
+      couponCode: "777777",
+      issuedNumber,
+      barcodeSource: "CouponMosBarcode",
+      batchSize: 10000,
+      publishedFrom: "admin",
+      publishedOrganizationId: "e1cbfd52-94da-49d0-91a4-336b29424893",
+      publishedOrganizationName: "e2e",
+      description: "e2e",
+    },
+    {
+      couponMasterId: "efe57b45-53e3-42a8-a506-2059f73a200a",
+      couponCode: "999999",
+      issuedNumber,
+      barcodeSource: "CouponMosBarcode",
+      batchSize: 10000,
+      publishedFrom: "admin",
+      publishedOrganizationId: "842ae95f-49b8-4a98-9a02-009183f38bd5",
+      publishedOrganizationName: "e2e",
+      description: "e2e",
+    },
+  ];
+
+  const payload = payloads.find((p) => p.couponCode === couponCode);
+
+  if (!payload) {
+    throw new Error(
+      `Invalid coupon code: ${couponCode}. Valid codes are: ${payloads
+        .map((p) => p.couponCode)
+        .join(", ")}`
+    );
+  }
 
   console.log(
     `📊 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
@@ -270,8 +329,8 @@ if (require.main === module) {
 
       // Test MOS
       console.log("\n--- Testing MOS Bulk Issue ---");
-      const mosResult = await bulkIssueMos(2, "TEST-COUPON-001");
-      console.log("MOS Result:", mosResult);
+      // const mosResult = await bulkIssueMos(2, "TEST-COUPON-001");
+      // console.log("MOS Result:", mosResult);
     } catch (error) {
       console.error(
         "💥 Test failed:",

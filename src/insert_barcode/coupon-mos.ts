@@ -7,18 +7,18 @@ function isValidCoupon(code: string): boolean {
 }
 
 // Tạo mã coupon duy nhất
-function generateCouponCode(first6: string, after2: string): string {
-  return `B${first6}2${after2}B`;
+function generateCouponCode(first6CouponCode: string, after2: string): string {
+  return `B${first6CouponCode}2${after2}B`;
 }
 
 // Sinh số lượng mã yêu cầu, đảm bảo duy nhất
-function generateUniqueCoupons(count: number): string[] {
+function generateUniqueCoupons(count: number, couponCode?: string): string[] {
   const allCodes: Set<string> = new Set(); // Tập hợp để lưu mã duy nhất
-  const first6: string = "777777";
+  const first6CouponCode: string = couponCode || "777777"; // Coupon code ????
 
   for (let i = 0; i <= 999999 && allCodes.size < count; i++) {
     const after2: string = String(i).padStart(6, "0");
-    const code: string = generateCouponCode(first6, after2);
+    const code: string = generateCouponCode(first6CouponCode, after2);
 
     if (isValidCoupon(code)) {
       allCodes.add(code);
@@ -33,8 +33,12 @@ function generateUniqueCoupons(count: number): string[] {
 }
 
 // Ghi mã vào các file CSV
-function writeCouponsToFiles(total: number, codesPerFile: number): string {
-  const allCoupons: string[] = generateUniqueCoupons(total);
+function writeCouponsToFiles(
+  total: number,
+  codesPerFile: number,
+  couponCode?: string
+): string {
+  const allCoupons: string[] = generateUniqueCoupons(total, couponCode);
   const fileCount: number = Math.ceil(allCoupons.length / codesPerFile);
 
   // Ensure output directory exists
@@ -68,10 +72,13 @@ function writeCouponsToFiles(total: number, codesPerFile: number): string {
   return targetDir;
 }
 
-export default function generate(totalCodes: number = 1000000): string {
+export default function generate(
+  totalCodes: number = 1000000,
+  couponCode?: string
+): string {
   const codesPerFile: number = 1000;
   console.log(`🚀 Bắt đầu tạo ${totalCodes} mã MOS coupon...`);
-  const outputPath = writeCouponsToFiles(totalCodes, codesPerFile);
+  const outputPath = writeCouponsToFiles(totalCodes, codesPerFile, couponCode);
   console.log(`🎉 Hoàn thành! Files được lưu tại: ${outputPath}`);
   return outputPath;
 }

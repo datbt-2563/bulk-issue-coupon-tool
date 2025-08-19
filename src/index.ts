@@ -112,6 +112,23 @@ async function promptQuantity(): Promise<number> {
   return quantity;
 }
 
+async function promptCouponCodeFromList(): Promise<string> {
+  const { couponCode } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "couponCode",
+      message: "Select a coupon code:",
+      choices: [
+        { name: "123456", value: "123456" },
+        { name: "654321", value: "654321" },
+        { name: "777777", value: "777777" },
+        { name: "666666", value: "666666" },
+      ],
+    },
+  ]);
+  return couponCode;
+}
+
 async function promptFolderSelection(): Promise<string> {
   const outputDir = path.join(process.cwd(), "output");
 
@@ -199,25 +216,38 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
         // Prompt for barcode sub-type
         const barcodeSubType = await promptBarcodeSubType();
 
-        // Prompt for quantity
-        const barcodeQuantity = await promptQuantity();
-
-        console.log(
-          `\n🚀 Generating ${barcodeSubType} codes with quantity ${barcodeQuantity}...`
-        );
-
         // Generate codes based on sub-type
         if (barcodeSubType === "Pos12") {
+          // Prompt for quantity
+          const barcodeQuantity = await promptQuantity();
+
+          console.log(
+            `\n🚀 Generating ${barcodeSubType} codes with quantity ${barcodeQuantity}...`
+          );
           const pos12 = await import("./insert_barcode/pos12");
           outputPath = pos12.default(barcodeQuantity);
           console.log(`✅ POS12 codes generated successfully!`);
         } else if (barcodeSubType === "Gen16") {
+          // Prompt for quantity
+          const barcodeQuantity = await promptQuantity();
+
+          console.log(
+            `\n🚀 Generating ${barcodeSubType} codes with quantity ${barcodeQuantity}...`
+          );
           const gen16 = await import("./insert_barcode/general_16");
           outputPath = gen16.default(barcodeQuantity);
           console.log(`✅ General 16-digit codes generated successfully!`);
         } else if (barcodeSubType === "Mos") {
+          const couponCode = await promptCouponCodeFromList();
+
+          // Prompt for quantity
+          const barcodeQuantity = await promptQuantity();
+
+          console.log(
+            `\n🚀 Generating ${barcodeSubType} codes with quantity ${barcodeQuantity}...`
+          );
           const mos = await import("./insert_barcode/coupon-mos");
-          outputPath = mos.default(barcodeQuantity);
+          outputPath = mos.default(barcodeQuantity, couponCode);
           console.log(`✅ MOS coupon codes generated successfully!`);
         } else {
           throw new Error(`Unknown barcode sub-type: ${barcodeSubType}`);

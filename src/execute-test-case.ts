@@ -27,6 +27,8 @@ export const testCases: {
   testPattern: keyof typeof testPattens;
   status: "new" | "processing" | "pass" | "fail";
 }[] = [
+  { no: 25, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
+
   { no: 1, barcodeType: "Pos12", testPattern: "TC-001", status: "pass" },
   { no: 2, barcodeType: "Pos12", testPattern: "TC-001", status: "pass" },
   { no: 3, barcodeType: "Pos12", testPattern: "TC-001", status: "pass" },
@@ -44,18 +46,19 @@ export const testCases: {
   { no: 19, barcodeType: "Gen16", testPattern: "TC-003", status: "new" },
   { no: 20, barcodeType: "Gen16", testPattern: "TC-003", status: "new" },
   { no: 21, barcodeType: "Gen16", testPattern: "TC-003", status: "new" },
+
+  { no: 9, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
+  { no: 10, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
+  { no: 11, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
+  { no: 12, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
+
   { no: 22, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
   { no: 23, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
   { no: 24, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
 
   { no: 7, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
   { no: 8, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
-  { no: 9, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
-  { no: 10, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
-  { no: 11, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
-  { no: 12, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
 
-  { no: 25, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
   { no: 26, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
   { no: 27, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
   { no: 28, barcodeType: "Mos", testPattern: "TC-003", status: "new" },
@@ -124,7 +127,10 @@ export const executeTestCase = async (params: {
   }
 
   if (barcodeType === "Mos") {
-    console.log(`Not support type: ${barcodeType}`);
+    return await executeTestCaseMos({
+      no,
+      testPattern,
+    });
   }
 
   // Check if current barcode is enough
@@ -287,6 +293,147 @@ export const executeTestCase = async (params: {
   );
 };
 
+export const executeTestCaseMos = async (params: {
+  no: number;
+  testPattern: keyof typeof testPattens;
+}) => {
+  const { no, testPattern } = params;
+
+  // STAGE 1: Check if enough barcodes are available
+
+  // Check if current barcode is enough
+  const valkeyModule = await import("./valkey/overview");
+  const overview = await valkeyModule.getValkeyOverview();
+
+  console.log(overview);
+
+  const mosAvailableCountDetail = overview.availableMosDetail;
+  const testCase = testPattens[testPattern];
+
+  const allowCouponCodes = ["999999", "777777", "123456", "654321"];
+  const availableMosCount: Record<string, number> = {};
+  for (const couponCode of allowCouponCodes) {
+    const key = "dev-coupon-BarcodeMos-table:available:" + couponCode;
+    const count = mosAvailableCountDetail[key] || 0;
+    availableMosCount[couponCode] = count;
+  }
+
+  // Sort availableMosCount by value in descending order
+  const sortedAvailableMosCount = Object.entries(availableMosCount).sort(
+    ([, a], [, b]) => b - a
+  );
+
+  // Each process require a coupon code, check if enough codes are available
+  for (let i = 0; i < testCase.numberProcess; i++) {
+    const couponCode = sortedAvailableMosCount[i]?.[0] || 0;
+    const available = sortedAvailableMosCount[i]?.[1] || 0;
+
+    if (available < testCase.couponPerProcess) {
+      console.log(`Not enough MOS barcodes available for process ${i + 1}.`);
+
+      // TODO: Bulk issue more MOS barcodes
+      // bulk issue couponPerProcess for couponCode
+      const issueMoreNumber = testCase.couponPerProcess; // Because chance of duplicate is high, we issue the same number as required
+      let outputPath = "";
+
+      const mos = await import("./insert_barcode/coupon-mos");
+      outputPath = mos.default(issueMoreNumber, couponCode.toString());
+      console.log(`✅ MOS coupon codes generated successfully!`);
+      console.log(`📁 Output directory: ${outputPath}`);
+
+      // Prompt for S3 upload
+      const timestamp = generateTimestamp();
+      const folderName = path.basename(outputPath);
+      const customKey = `${folderName}-${timestamp}.zip`;
+      const uploadToS3 = await import("./insert_barcode/upload-to-s3");
+      const s3Url = await uploadToS3.default(folderName, customKey);
+      console.log(`✅ Folder uploaded successfully to S3!`);
+      console.log(`🌐 S3 URL: ${s3Url}`);
+
+      const estimatedTimeInSecond = Math.ceil(issueMoreNumber / 200); // Assuming each process takes 10 seconds
+      console.log(
+        `⏳ Estimated time to process ${issueMoreNumber} barcodes: ${estimatedTimeInSecond} seconds`
+      );
+      // Log time will continue before sleep
+      console.log(
+        `⏳ Sleeping for ${estimatedTimeInSecond} seconds..., will continue at ${new Date(
+          Date.now() + estimatedTimeInSecond * 1000
+        ).toLocaleTimeString()}`
+      );
+      // sleep for the estimated time
+      await new Promise((resolve) =>
+        setTimeout(resolve, estimatedTimeInSecond * 1000)
+      );
+
+      while (true) {
+        const overview = await valkeyModule.getValkeyOverview();
+        const targetCount =
+          overview.availableMosDetail[
+            `dev-coupon-BarcodeMos-table:available:${couponCode}`
+          ] || 0;
+
+        if (targetCount >= testCase.couponPerProcess) {
+          console.log(
+            `✅ All required MOS barcodes for coupon code ${couponCode} are available.`
+          );
+          break;
+        }
+
+        // Sleep for 20 seconds before checking again
+        await new Promise((resolve) => setTimeout(resolve, 20000));
+      }
+    }
+  }
+  console.log(`All required MOS barcodes are available.`);
+  console.log(`Finished stage 1 for Test Case No: ${no}`);
+
+  // STAGE 2: Execute the test case
+
+  const bulkIssueModule = await import("./bulk_issue/state_machine");
+
+  const results: {
+    executionArn: string;
+  }[] = [];
+
+  for (let i = 0; i < testCase.numberProcess; i++) {
+    const couponCode = sortedAvailableMosCount[i]?.[0];
+    const issuedNumber = testCase.couponPerProcess;
+    console.log(
+      `\n🚀 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
+    );
+    let result = await bulkIssueModule.bulkIssueMos(
+      issuedNumber,
+      couponCode as any
+    );
+    results.push(result);
+  }
+
+  // Sleep 33 minutes to wait for the process to complete
+  const sleepTime = 33 * 60 * 1000; // 33 minutes
+
+  // Log sleep time and time to continue
+  console.log(
+    `⏳ Sleeping for ${
+      sleepTime / 1000
+    } seconds..., will continue at ${new Date(
+      Date.now() + sleepTime
+    ).toLocaleTimeString()}`
+  );
+  await new Promise((resolve) => setTimeout(resolve, sleepTime));
+
+  for (const result of results) {
+    await pollExecutionStatus(result.executionArn, 30000);
+  }
+
+  console.log(`Finished stage 2 for Test Case No: ${no}`);
+
+  await log(
+    no,
+    results.map((r) => r.executionArn),
+    "finished"
+  );
+};
+
 export const executeTestCases = async () => {
   const logData = await getLog();
   const executedTestCases = logData
@@ -306,7 +453,7 @@ export const executeTestCases = async () => {
 
     await executeTestCase(testCase);
 
-    // break; // Remove this line to execute all test cases
+    break; // Remove this line to execute all test cases
   }
 
   console.log("All test cases executed.");
