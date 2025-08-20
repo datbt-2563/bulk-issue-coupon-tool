@@ -121,7 +121,7 @@ export async function bulkIssuePos12(issuedNumber: number): Promise<any> {
  */
 export async function bulkIssueMos(
   issuedNumber: number,
-  couponCode: "123456" | "654321" | "777777" | "999999"
+  couponCode: "123456" | "654321" | "777777" | "666666"
 ): Promise<any> {
   // const payload = {
   //   couponMasterId: "0448f6e7-f823-4721-abeb-80d6a70038a9",
@@ -135,7 +135,7 @@ export async function bulkIssueMos(
   //   description: "e2e",
   // };
 
-  // const couponCodes = ["123456", "654321", "777777", "999999"];
+  // const couponCodes = ["123456", "654321", "777777", "666666"];
 
   const payloads = [
     {
@@ -173,7 +173,7 @@ export async function bulkIssueMos(
     },
     {
       couponMasterId: "efe57b45-53e3-42a8-a506-2059f73a200a",
-      couponCode: "999999",
+      couponCode: "666666",
       issuedNumber,
       barcodeSource: "CouponMosBarcode",
       batchSize: 10000,

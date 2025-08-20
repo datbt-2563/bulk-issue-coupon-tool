@@ -226,7 +226,7 @@ export const executeTestCase = async (params: {
   //   if (barcodeType === "Mos") {
   // For MOS, also prompt for coupon code
   // const couponCode = await promptMosCouponCode();
-  // const couponCode = "999999";
+  // const couponCode = "666666";
   // console.log(
   //   `\n🚀 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
   // );
@@ -310,7 +310,7 @@ export const executeTestCaseMos = async (params: {
   const mosAvailableCountDetail = overview.availableMosDetail;
   const testCase = testPattens[testPattern];
 
-  const allowCouponCodes = ["999999", "777777", "123456", "654321"];
+  const allowCouponCodes = ["666666", "777777", "123456", "654321"];
   const availableMosCount: Record<string, number> = {};
   for (const couponCode of allowCouponCodes) {
     const key = "dev-coupon-BarcodeMos-table:available:" + couponCode;
