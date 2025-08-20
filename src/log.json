@@ -109,5 +109,35 @@
       "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755590075209-50ogf5nd4"
     ],
     "status": "finished"
+  },
+  {
+    "testCaseNo": 12,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755653655661-5w5nsq8kn",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755653656239-tmxwlxp49",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755653656440-6i9dzq5lf",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755653656594-hjfpw07tr"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 22,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755658478268-yjgxzi442",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755658478824-xhgb6rijr",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755658478978-mzf0lq9uo",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755658479123-mtdk0l9gp"
+    ],
+    "status": "finished"
+  },
+  {
+    "testCaseNo": 23,
+    "stateMachineArns": [
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755660976381-219u4886m",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755660976557-iiy8qlp4q",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755660976718-g53fehtvz",
+      "arn:aws:states:ap-northeast-1:856562439801:execution:dev-coupon-bulkIssuedCoupon-machine:bulk-issue-1755660976885-wrys7j2us"
+    ],
+    "status": "finished"
   }
 ]

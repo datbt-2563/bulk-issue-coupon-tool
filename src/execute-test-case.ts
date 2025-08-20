@@ -27,7 +27,7 @@ export const testCases: {
   testPattern: keyof typeof testPattens;
   status: "new" | "processing" | "pass" | "fail";
 }[] = [
-  { no: 25, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
+  // { no: 25, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
 
   { no: 1, barcodeType: "Pos12", testPattern: "TC-001", status: "pass" },
   { no: 2, barcodeType: "Pos12", testPattern: "TC-001", status: "pass" },
@@ -49,24 +49,24 @@ export const testCases: {
 
   { no: 9, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
   { no: 10, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
-  { no: 11, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
+  // { no: 11, barcodeType: "Pos12", testPattern: "TC-004", status: "new" }, // inprogress
   { no: 12, barcodeType: "Pos12", testPattern: "TC-004", status: "new" },
 
   { no: 22, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
   { no: 23, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
-  { no: 24, barcodeType: "Gen16", testPattern: "TC-004", status: "new" },
+  { no: 24, barcodeType: "Gen16", testPattern: "TC-004", status: "new" }, // inprogress
 
   { no: 7, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
   { no: 8, barcodeType: "Pos12", testPattern: "TC-003", status: "new" },
 
-  { no: 26, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
-  { no: 27, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
-  { no: 28, barcodeType: "Mos", testPattern: "TC-003", status: "new" },
-  { no: 29, barcodeType: "Mos", testPattern: "TC-003", status: "new" },
-  { no: 30, barcodeType: "Mos", testPattern: "TC-003", status: "new" },
-  { no: 31, barcodeType: "Mos", testPattern: "TC-004", status: "new" },
-  { no: 32, barcodeType: "Mos", testPattern: "TC-004", status: "new" },
-  { no: 33, barcodeType: "Mos", testPattern: "TC-004", status: "new" },
+  // { no: 26, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
+  // { no: 27, barcodeType: "Mos", testPattern: "TC-002", status: "new" },
+  // { no: 28, barcodeType: "Mos", testPattern: "TC-003", status: "new" },
+  // { no: 29, barcodeType: "Mos", testPattern: "TC-003", status: "new" },
+  // { no: 30, barcodeType: "Mos", testPattern: "TC-003", status: "new" },
+  // { no: 31, barcodeType: "Mos", testPattern: "TC-004", status: "new" },
+  // { no: 32, barcodeType: "Mos", testPattern: "TC-004", status: "new" },
+  // { no: 33, barcodeType: "Mos", testPattern: "TC-004", status: "new" },
 ];
 
 export const log = (
@@ -453,7 +453,7 @@ export const executeTestCases = async () => {
 
     await executeTestCase(testCase);
 
-    break; // Remove this line to execute all test cases
+    // break; // Remove this line to execute all test cases
   }
 
   console.log("All test cases executed.");
