@@ -123,9 +123,32 @@ async function promptCouponCodeFromList(): Promise<string> {
         { name: "654321", value: "654321" },
         { name: "777777", value: "777777" },
         { name: "666666", value: "666666" },
+        { name: "Enter custom coupon code", value: "CUSTOM" },
       ],
     },
   ]);
+
+  if (couponCode === "CUSTOM") {
+    const { customCode } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "customCode",
+        message: "Enter your custom coupon code:",
+        validate: (input: string): boolean | string => {
+          if (!input || input.trim() === "") {
+            return "Please enter a valid coupon code";
+          }
+          if (input.trim().length < 1) {
+            return "Coupon code must be at least 1 character long";
+          }
+          return true;
+        },
+        filter: (input: string): string => input.trim(),
+      },
+    ]);
+    return customCode;
+  }
+
   return couponCode;
 }
 
