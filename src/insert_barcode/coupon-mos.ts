@@ -65,7 +65,7 @@ function writeCouponsToFiles(
     const batch: string[] = allCoupons.slice(start, end);
     const fileName: string = path.join(targetDir, `${filePrefix}${i + 1}.csv`);
 
-    fs.writeFileSync(fileName, batch.join("\n"), "utf8");
+    fs.writeFileSync(fileName, batch.join("\n") + "\n", "utf8");
     console.log(`✅ Đã ghi ${batch.length} mã vào file ${fileName}`);
   }
 
