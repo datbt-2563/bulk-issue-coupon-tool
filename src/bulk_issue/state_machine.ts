@@ -5,6 +5,38 @@ import {
 } from "@aws-sdk/client-sfn";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
+
+const client = new DynamoDBClient({ region: "ap-northeast-1" }); // đổi region nếu cần
+
+/**
+ * Update couponCode field in dev-coupon-couponMaster-table by couponMasterId
+ */
+export async function updateCouponCode(
+  couponMasterId: string,
+  newCouponCode: string
+): Promise<void> {
+  const command = new UpdateCommand({
+    TableName: "dev-coupon-couponMaster-table",
+    Key: {
+      couponMasterId, // partition key
+    },
+    UpdateExpression: "SET couponCode = :couponCode",
+    ExpressionAttributeValues: {
+      ":couponCode": newCouponCode,
+    },
+    ReturnValues: "UPDATED_NEW", // trả về các field đã cập nhật
+  });
+
+  try {
+    const result = await client.send(command);
+    console.log("Updated:", result);
+  } catch (err) {
+    console.error("Error updating couponCode:", err);
+    throw err;
+  }
+}
 
 // Initialize Step Functions client for ap-northeast-1 region
 const sfnClient = new SFNClient({
@@ -115,13 +147,13 @@ export async function bulkIssuePos12(issuedNumber: number): Promise<any> {
 
 /**
  * Bulk issue MOS coupons
- * @param issuedNumber - Number of coupons to issue
+ * @param issuedNumberPerProcess - Number of coupons to issue
  * @param couponCode - The coupon code to use
  * @returns Promise that resolves with the execution result
  */
 export async function bulkIssueMos(
-  issuedNumber: number,
-  couponCode: "123456" | "654321" | "777777" | "666666"
+  issuedNumberPerProcess: number,
+  couponCodes: string[]
 ): Promise<any> {
   // const payload = {
   //   couponMasterId: "0448f6e7-f823-4721-abeb-80d6a70038a9",
@@ -141,7 +173,7 @@ export async function bulkIssueMos(
     {
       couponMasterId: "c68ec1c0-356d-41cb-bc81-0b299e4e27b3",
       couponCode: "123456",
-      issuedNumber,
+      issuedNumber: issuedNumberPerProcess,
       barcodeSource: "CouponMosBarcode",
       batchSize: 10000,
       publishedFrom: "admin",
@@ -152,7 +184,7 @@ export async function bulkIssueMos(
     {
       couponMasterId: "83514e83-6566-4061-93cd-0b29bda855eb",
       couponCode: "654321",
-      issuedNumber,
+      issuedNumber: issuedNumberPerProcess,
       barcodeSource: "CouponMosBarcode",
       batchSize: 10000,
       publishedFrom: "admin",
@@ -163,7 +195,7 @@ export async function bulkIssueMos(
     {
       couponMasterId: "8e9a189a-2f35-4ff0-952d-e7100f32aa2e",
       couponCode: "777777",
-      issuedNumber,
+      issuedNumber: issuedNumberPerProcess,
       barcodeSource: "CouponMosBarcode",
       batchSize: 10000,
       publishedFrom: "admin",
@@ -174,7 +206,7 @@ export async function bulkIssueMos(
     {
       couponMasterId: "efe57b45-53e3-42a8-a506-2059f73a200a",
       couponCode: "666666",
-      issuedNumber,
+      issuedNumber: issuedNumberPerProcess,
       barcodeSource: "CouponMosBarcode",
       batchSize: 10000,
       publishedFrom: "admin",
@@ -184,20 +216,23 @@ export async function bulkIssueMos(
     },
   ];
 
-  const payload = payloads.find((p) => p.couponCode === couponCode);
-
-  if (!payload) {
-    throw new Error(
-      `Invalid coupon code: ${couponCode}. Valid codes are: ${payloads
-        .map((p) => p.couponCode)
-        .join(", ")}`
-    );
+  const numberProcess = couponCodes.length;
+  if (numberProcess > 4) {
+    // Nếu số lần xử lý lớn hơn 4, thực hiện xử lý khác
+    throw new Error(`Exceeded maximum processing attempts: ${numberProcess}`);
   }
 
-  console.log(
-    `📊 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
-  );
-  return await invokeBulkIssueStateMachine(payload);
+  for (let i = 0; i < numberProcess; i++) {
+    // update coupon code in DynamoDB
+    await updateCouponCode(payloads[i].couponMasterId, couponCodes[i]);
+    await invokeBulkIssueStateMachine({
+      ...payloads[i],
+      couponCode: couponCodes[i],
+    });
+
+    // sleep 2s
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
 }
 
 /**

@@ -387,14 +387,15 @@ async function runModule(moduleName: string, quantity?: number): Promise<void> {
 
           if (bulkIssueType === "Mos") {
             // For MOS, also prompt for coupon code
-            // const couponCode = await promptMosCouponCode();
-            const couponCode = "666666";
+            const couponCodes = await promptMosCouponCodes();
             console.log(
-              `\n🚀 Bulk issuing ${issuedNumber} MOS coupons with code: ${couponCode}...`
+              `\n🚀 Bulk issuing ${issuedNumber} MOS coupons with codes: ${couponCodes.join(
+                ", "
+              )}...`
             );
             result = await bulkIssueModule.bulkIssueMos(
               issuedNumber,
-              couponCode
+              couponCodes
             );
           } else if (bulkIssueType === "Pos12") {
             console.log(`\n🚀 Bulk issuing ${issuedNumber} Pos12 coupons...`);
@@ -758,21 +759,25 @@ async function promptBulkIssueQuantity(): Promise<number> {
   return quantity;
 }
 
-async function promptMosCouponCode(): Promise<string> {
-  const { couponCode } = await inquirer.prompt([
+async function promptMosCouponCodes(): Promise<string[]> {
+  const { couponCodes } = await inquirer.prompt([
     {
       type: "input",
-      name: "couponCode",
-      message: "Enter coupon code for Mos:",
+      name: "couponCodes",
+      message: "Enter one or more coupon codes for Mos (comma separated):",
       validate: (input: string): boolean | string => {
         if (!input || input.trim() === "") {
-          return "Please enter a valid coupon code";
+          return "Please enter at least one coupon code";
         }
         return true;
       },
     },
   ]);
-  return couponCode.trim();
+  // Split by comma, trim each code, and filter out empty strings
+  return couponCodes
+    .split(",")
+    .map((code: string) => code.trim())
+    .filter((code: string) => code.length > 0);
 }
 
 if (require.main === module) {
